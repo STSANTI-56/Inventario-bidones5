@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bidones — Inventario</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: #f0f4f8;
+  color: #1a202c;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+h1 { font-size: 22px; font-weight: 800; margin-bottom: 24px; letter-spacing: -0.5px; }
+h1 span { color: #3b82f6; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #94a3b8;
+  margin-bottom: 18px;
+}
+
+/* KPIs */
+.totales {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.total-mini {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  text-align: center;
+}
+.total-mini .num { font-size: 26px; font-weight: 800; line-height: 1; }
+.total-mini .lbl { font-size: 11px; color: #94a3b8; margin-top: 5px; }
+
+/* DISPONIBLES POR TIPO */
+.disponibles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.disp-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.disp-icon { font-size: 28px; flex-shrink: 0; }
+.disp-num  { font-size: 34px; font-weight: 800; line-height: 1; }
+.disp-lbl  { font-size: 13px; color: #64748b; margin-top: 3px; }
+.disp-sub  { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+/* BARRAS */
+.bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+.bar-label { width: 175px; font-size: 14px; color: #475569; flex-shrink: 0; }
+.bar-track { flex: 1; background: #f1f5f9; border-radius: 99px; height: 28px; overflow: hidden; }
+.bar-fill {
+  height: 100%; border-radius: 99px;
+  display: flex; align-items: center; padding-left: 10px;
+  font-size: 12px; font-weight: 700; color: #fff;
+  transition: width 0.7s cubic-bezier(0.23,1,0.32,1);
+  min-width: 36px;
+}
+.bar-num { width: 38px; text-align: right; font-size: 17px; font-weight: 800; }
+
+/* PANEL PERSONALIZAR */
+.config-panel {
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  margin-bottom: 20px;
+  border: 2px solid #e0f2fe;
+}
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.config-field label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px; }
+.config-field input {
+  width: 100%; padding: 9px 12px;
+  border: 1.5px solid #e2e8f0; border-radius: 10px;
+  font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800;
+  text-align: center; color: #1a202c; outline: none; transition: border-color 0.2s;
+}
+.config-field input:focus { border-color: #3b82f6; }
+.config-note { font-size: 12px; color: #94a3b8; margin-bottom: 12px; text-align: center; }
+.config-note.ok  { color: #16a34a; }
+.config-note.err { color: #dc2626; }
+.btn-config {
+  width: 100%; padding: 11px;
+  background: #0ea5e9; color: #fff; border: none; border-radius: 10px;
+  font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: background 0.2s;
+}
+.btn-config:hover { background: #0284c7; }
+
+/* FORMULARIO */
+.form-group { margin-bottom: 13px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 5px; }
+.form-group select,
+.form-group input {
+  width: 100%; padding: 10px 13px;
+  border: 1.5px solid #e2e8f0; border-radius: 10px;
+  font-family: 'Outfit', sans-serif; font-size: 15px;
+  color: #1a202c; background: #fff; outline: none; transition: border-color 0.2s;
+}
+.form-group input[type="number"] { font-size: 24px; font-weight: 800; text-align: center; color: #3b82f6; }
+.form-group select:focus, .form-group input:focus { border-color: #3b82f6; }
+
+/* TABS */
+.tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.tab {
+  flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 10px;
+  background: #fff; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; text-align: center; color: #94a3b8; transition: all 0.2s;
+}
+.tab.active-venta  { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
+.tab.active-fiado  { border-color: #f59e0b; color: #f59e0b; background: #fffbeb; }
+
+.panel-venta, .panel-fiado { display: none; }
+.panel-venta.show, .panel-fiado.show { display: block; }
+
+.btn {
+  width: 100%; padding: 13px;
+  color: #fff; border: none; border-radius: 10px;
+  font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: background 0.2s, transform 0.1s;
+}
+.btn-azul  { background: #3b82f6; }
+.btn-azul:hover  { background: #2563eb; }
+.btn-amber { background: #f59e0b; }
+.btn-amber:hover { background: #d97706; }
+.btn:active { transform: scale(0.98); }
+
+.msg {
+  margin-top: 11px; padding: 10px 13px;
+  background: #f0fdf4; border: 1px solid #86efac;
+  border-radius: 8px; font-size: 13px; color: #16a34a; display: none;
+}
+.msg.err { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+.msg.warn { background: #fffbeb; border-color: #fcd34d; color: #b45309; }
+.msg.show { display: block; }
+
+/* LISTA FIADOS */
+.fiados-section {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.fiados-header {
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+}
+.fiados-header-title {
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; color: #94a3b8;
+}
+.fiados-total-badge {
+  background: #fffbeb; border: 1px solid #fcd34d;
+  color: #b45309; border-radius: 20px;
+  padding: 4px 12px; font-size: 13px; font-weight: 700;
+}
+
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  background: #f8fafc; padding: 10px 18px;
+  text-align: left; font-size: 11px; font-weight: 700;
+  color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px;
+}
+tbody tr { border-top: 1px solid #f1f5f9; transition: background 0.15s; }
+tbody tr:hover { background: #fafafa; }
+td { padding: 12px 18px; font-size: 14px; }
+
+.tag {
+  display: inline-block; padding: 3px 10px;
+  border-radius: 20px; font-size: 12px; font-weight: 700;
+}
+.tag-llave    { background: #fff7ed; color: #c2410c; }
+.tag-sinllave { background: #f5f3ff; color: #6d28d9; }
+.tag-fiado    { background: #fffbeb; color: #b45309; }
+.tag-pagado   { background: #f0fdf4; color: #16a34a; }
+
+.btn-cobrar {
+  padding: 5px 12px; border: none; border-radius: 8px;
+  background: #f0fdf4; color: #16a34a; border: 1px solid #86efac;
+  font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: background 0.2s;
+}
+.btn-cobrar:hover { background: #dcfce7; }
+
+.empty-row td { color: #94a3b8; font-size: 13px; text-align: center; padding: 24px; }
+
+/* FECHA */
+.fecha-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 13px 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.fecha-bar label {
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: #94a3b8; white-space: nowrap;
+}
+.fecha-bar input[type="date"] {
+  border: 1.5px solid #e2e8f0; border-radius: 10px;
+  padding: 7px 14px; font-family: 'Outfit', sans-serif;
+  font-size: 15px; font-weight: 700; color: #1a202c;
+  background: #f8fafc; outline: none; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.fecha-bar input[type="date"]:focus { border-color: #3b82f6; background: #fff; }
+
+/* ESTADO SHEETS */
+.sheets-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-left: auto;
+  transition: all 0.3s;
+}
+.sheets-status.idle    { background: #f1f5f9; color: #94a3b8; }
+.sheets-status.saving  { background: #eff6ff; color: #3b82f6; }
+.sheets-status.saved   { background: #f0fdf4; color: #16a34a; }
+.sheets-status.error   { background: #fef2f2; color: #dc2626; }
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.dot.pulse { animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
+</head>
+<body>
+
+<h1>🏺 Inventario <span>Bidones</span></h1>
+
+<!-- FECHA + ESTADO SHEETS -->
+<div style="display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+  <div class="fecha-bar" style="margin-bottom:0">
+    <label>📅 Fecha</label>
+    <input type="date" id="fecha-dia">
+  </div>
+  <div class="sheets-status idle" id="sheets-status">
+    <div class="dot"></div>
+    <span id="sheets-txt">Google Sheets listo</span>
+  </div>
+  <a href="https://docs.google.com/spreadsheets/d/1N5iYTM7KZcQIVeAgUqVX-Fg8U-usfvHsm_SiV0YInB4/edit" target="_blank" style="
+    display:flex; align-items:center; gap:7px;
+    background:#fff; border:1.5px solid #e2e8f0; border-radius:20px;
+    padding:6px 14px; font-size:12px; font-weight:700; color:#16a34a;
+    text-decoration:none; box-shadow:0 1px 4px rgba(0,0,0,0.07);
+  ">
+    <img src="https://ssl.gstatic.com/docs/spreadsheets/favicon3.ico" width="16" height="16" style="border-radius:3px">
+    Ver en Google Sheets
+  </a>
+</div>
+
+<!-- PANEL PERSONALIZAR -->
+<div class="config-panel">
+  <div class="card-title">✏️ Personalizar Stock Inicial</div>
+  <div class="config-grid">
+    <div class="config-field">
+      <label>Total Indonesia</label>
+      <input type="number" id="cfg-indonesia" value="120" min="0" oninput="validarConfig()">
+    </div>
+    <div class="config-field">
+      <label>Bidones con llave</label>
+      <input type="number" id="cfg-llave" value="48" min="0" oninput="validarConfig()">
+    </div>
+    <div class="config-field">
+      <label>Bidones sin llave</label>
+      <input type="number" id="cfg-sinllave" value="72" min="0" oninput="validarConfig()">
+    </div>
+  </div>
+  <div class="config-note" id="cfg-nota"></div>
+  <button class="btn-config" id="btn-aplicar" onclick="aplicarConfig()">APLICAR CAMBIOS</button>
+</div>
+
+<!-- KPIs -->
+<div class="totales">
+  <div class="total-mini">
+    <div class="num" id="t-total" style="color:#3b82f6">—</div>
+    <div class="lbl">Total Indonesia</div>
+  </div>
+  <div class="total-mini">
+    <div class="num" id="t-vendidos" style="color:#22c55e">—</div>
+    <div class="lbl">Vendidos</div>
+  </div>
+  <div class="total-mini">
+    <div class="num" id="t-disponible" style="color:#f59e0b">—</div>
+    <div class="lbl">Disponibles</div>
+  </div>
+  <div class="total-mini">
+    <div class="num" id="t-fiados" style="color:#f59e0b">—</div>
+    <div class="lbl">Fiados</div>
+  </div>
+  <div class="total-mini">
+    <div class="num" id="t-ingresos" style="color:#8b5cf6">—</div>
+    <div class="lbl">Ingresos est.</div>
+  </div>
+</div>
+
+<!-- DISPONIBLES POR TIPO -->
+<div class="disponibles">
+  <div class="disp-card">
+    <div class="disp-icon">🔑</div>
+    <div class="disp-info">
+      <div class="disp-num" id="disp-llave" style="color:#f59e0b">—</div>
+      <div class="disp-lbl">Con llave disponibles</div>
+      <div class="disp-sub" id="disp-llave-sub">—</div>
+    </div>
+  </div>
+  <div class="disp-card">
+    <div class="disp-icon">💧</div>
+    <div class="disp-info">
+      <div class="disp-num" id="disp-sinllave" style="color:#8b5cf6">—</div>
+      <div class="disp-lbl">Sin llave disponibles</div>
+      <div class="disp-sub" id="disp-sinllave-sub">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- IZQUIERDA: gráfico + fiados -->
+  <div>
+    <div class="card">
+      <div class="card-title">Resumen de Inventario</div>
+      <div id="chart"></div>
+    </div>
+
+    <!-- TABLA FIADOS -->
+    <div class="fiados-section">
+      <div class="fiados-header">
+        <div class="fiados-header-title">📋 Fiados pendientes</div>
+        <div class="fiados-total-badge" id="fiados-monto-badge">$0.00 pendiente</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Cant.</th>
+            <th>Monto</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody-fiados">
+          <tr class="empty-row"><td colspan="6">Sin fiados registrados</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DERECHA: formulario -->
+  <div>
+    <div class="card">
+      <div class="card-title">Registrar</div>
+
+      <!-- TABS -->
+      <div class="tabs">
+        <div class="tab active-venta" id="tab-venta" onclick="setTab('venta')">✅ Venta</div>
+        <div class="tab" id="tab-fiado" onclick="setTab('fiado')">🤝 Fiado</div>
+      </div>
+
+      <!-- PANEL VENTA -->
+      <div class="panel-venta show" id="panel-venta">
+        <div class="form-group">
+          <label>Tipo de bidón</label>
+          <select id="v-tipo">
+            <option value="llave">Con llave</option>
+            <option value="sinllave">Sin llave</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cantidad</label>
+          <input type="number" id="v-cantidad" value="1" min="1">
+        </div>
+        <div class="form-group">
+          <label>Precio unitario ($)</label>
+          <input type="number" id="v-precio" value="3.50" step="0.50">
+        </div>
+        <button class="btn btn-azul" onclick="registrarVenta()">REGISTRAR VENTA</button>
+      </div>
+
+      <!-- PANEL FIADO -->
+      <div class="panel-fiado" id="panel-fiado">
+        <div class="form-group">
+          <label>Nombre del cliente</label>
+          <input type="text" id="f-cliente" placeholder="Ej: Juan Pérez">
+        </div>
+        <div class="form-group">
+          <label>Tipo de bidón</label>
+          <select id="f-tipo">
+            <option value="llave">Con llave</option>
+            <option value="sinllave">Sin llave</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cantidad</label>
+          <input type="number" id="f-cantidad" value="1" min="1">
+        </div>
+        <div class="form-group">
+          <label>Precio unitario ($)</label>
+          <input type="number" id="f-precio" value="3.50" step="0.50">
+        </div>
+        <button class="btn btn-amber" onclick="registrarFiado()">REGISTRAR FIADO</button>
+      </div>
+
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIGURACIÓN GOOGLE SHEETS ───────────────────────────────────────────────
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxh3p9hGmfZxzD1NwflyhaLYSMiNkpTxEdKv0qRyzhb79gAv5O3AC4lgBWczDGsrcmKzA/exec";
+
+function setSheetStatus(estado) {
+  const el  = document.getElementById('sheets-status');
+  const txt = document.getElementById('sheets-txt');
+  const dot = el.querySelector('.dot');
+  el.className = 'sheets-status ' + estado;
+  dot.className = 'dot' + (estado === 'saving' ? ' pulse' : '');
+  const textos = { idle:'Google Sheets listo', saving:'Guardando…', saved:'✓ Guardado en Sheets', error:'⚠ Error al guardar' };
+  txt.textContent = textos[estado] || '';
+  if (estado === 'saved' || estado === 'error') {
+    setTimeout(() => setSheetStatus('idle'), 3000);
+  }
+}
+
+async function enviarASheets(payload) {
+  setSheetStatus('saving');
+  try {
+    payload.fecha = document.getElementById('fecha-dia').value;
+    const params = new URLSearchParams();
+    params.append("data", JSON.stringify(payload));
+    await fetch(GAS_URL, {
+      method: "POST",
+      body: params
+    });
+    setSheetStatus('saved');
+  } catch(e) {
+    setSheetStatus('error');
+    console.warn("Error al guardar en Sheets:", e);
+  }
+}
+
+// ── ESTADO ────────────────────────────────────────────────────────────────────
+let s = {
+  indonesia: 120, llave: 48, sinllave: 72,
+  vendLlave: 0, vendSinLlave: 0,
+  fiadoLlave: 0, fiadoSinLlave: 0,
+};
+
+let fiados = [];
+let nextId = 1;
+
+const FILAS = [
+  { label: 'Total Indonesia',     key: 'indonesia',    color: '#3b82f6', base: () => s.indonesia },
+  { label: 'Con llave (total)',   key: 'llave',        color: '#f59e0b', base: () => s.indonesia },
+  { label: 'Sin llave (total)',   key: 'sinllave',     color: '#8b5cf6', base: () => s.indonesia },
+  { label: 'Vendidos con llave',  key: 'vendLlave',    color: '#22c55e', base: () => s.llave     },
+  { label: 'Vendidos sin llave',  key: 'vendSinLlave', color: '#ef4444', base: () => s.sinllave  },
+  { label: 'Fiados con llave',    key: 'fiadoLlave',   color: '#f97316', base: () => s.llave     },
+  { label: 'Fiados sin llave',    key: 'fiadoSinLlave',color: '#fb923c', base: () => s.sinllave  },
+];
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function setTab(tab) {
+  document.getElementById('panel-venta').className = 'panel-venta' + (tab === 'venta' ? ' show' : '');
+  document.getElementById('panel-fiado').className = 'panel-fiado' + (tab === 'fiado' ? ' show' : '');
+  document.getElementById('tab-venta').className   = 'tab' + (tab === 'venta' ? ' active-venta' : '');
+  document.getElementById('tab-fiado').className   = 'tab' + (tab === 'fiado' ? ' active-fiado' : '');
+  document.getElementById('msg').classList.remove('show');
+}
+
+// ── Config ────────────────────────────────────────────────────────────────────
+function validarConfig() {
+  const ind   = parseInt(document.getElementById('cfg-indonesia').value) || 0;
+  const llave = parseInt(document.getElementById('cfg-llave').value)     || 0;
+  const sinll = parseInt(document.getElementById('cfg-sinllave').value)  || 0;
+  const suma  = llave + sinll;
+  const nota  = document.getElementById('cfg-nota');
+  const btn   = document.getElementById('btn-aplicar');
+  if (suma === ind) {
+    nota.className = 'config-note ok';
+    nota.innerHTML = `✓ Con llave (${llave}) + Sin llave (${sinll}) = ${suma} — coincide con Indonesia ✓`;
+    btn.disabled = false; btn.style.opacity = '1';
+  } else {
+    nota.className = 'config-note err';
+    nota.innerHTML = `⚠ Con llave (${llave}) + Sin llave (${sinll}) = ${suma} ≠ Indonesia (${ind})`;
+    btn.disabled = true; btn.style.opacity = '0.45';
+  }
+}
+
+function aplicarConfig() {
+  s.indonesia = parseInt(document.getElementById('cfg-indonesia').value) || 0;
+  s.llave     = parseInt(document.getElementById('cfg-llave').value)     || 0;
+  s.sinllave  = parseInt(document.getElementById('cfg-sinllave').value)  || 0;
+  s.vendLlave = s.vendSinLlave = s.fiadoLlave = s.fiadoSinLlave = 0;
+  fiados = [];
+
+  // ✅ Guardar stock en Sheets
+  enviarASheets({
+    tipo: "stock",
+    indonesia: s.indonesia,
+    llave: s.llave,
+    sinllave: s.sinllave
+  });
+
+  render();
+  show('✓ Stock actualizado y guardado en Sheets.');
+}
+
+// ── Venta ─────────────────────────────────────────────────────────────────────
+function registrarVenta() {
+  const tipo   = document.getElementById('v-tipo').value;
+  const cant   = parseInt(document.getElementById('v-cantidad').value)  || 0;
+  const precio = parseFloat(document.getElementById('v-precio').value)  || 0;
+  const disp   = disponiblesPorTipo(tipo);
+
+  if (cant <= 0)   { show('Ingresa una cantidad válida.', 'err'); return; }
+  if (cant > disp) { show(`Solo hay ${disp} disponibles de ese tipo.`, 'err'); return; }
+
+  if (tipo === 'llave') s.vendLlave    += cant;
+  else                  s.vendSinLlave += cant;
+
+  // ✅ Guardar venta en Sheets
+  enviarASheets({
+    tipo: "venta",
+    tipoBotellon: tipo === 'llave' ? 'Con llave' : 'Sin llave',
+    cantidad: cant,
+    precio: precio,
+    total: cant * precio
+  });
+
+  render();
+  show(`✓ ${cant} bidón(es) vendidos — $${(cant * precio).toFixed(2)}`);
+  document.getElementById('v-cantidad').value = 1;
+}
+
+// ── Fiado ─────────────────────────────────────────────────────────────────────
+function registrarFiado() {
+  const cliente = document.getElementById('f-cliente').value.trim();
+  const tipo    = document.getElementById('f-tipo').value;
+  const cant    = parseInt(document.getElementById('f-cantidad').value)  || 0;
+  const precio  = parseFloat(document.getElementById('f-precio').value) || 0;
+  const disp    = disponiblesPorTipo(tipo);
+
+  if (!cliente)    { show('Ingresa el nombre del cliente.', 'err'); return; }
+  if (cant <= 0)   { show('Ingresa una cantidad válida.', 'err'); return; }
+  if (cant > disp) { show(`Solo hay ${disp} disponibles de ese tipo.`, 'err'); return; }
+
+  if (tipo === 'llave') s.fiadoLlave    += cant;
+  else                  s.fiadoSinLlave += cant;
+
+  fiados.push({ id: nextId++, cliente, tipo, cant, precio, pagado: false });
+
+  // ✅ Guardar fiado en Sheets
+  enviarASheets({
+    tipo: "fiado",
+    tipoBotellon: tipo === 'llave' ? 'Con llave' : 'Sin llave',
+    cantidad: cant,
+    precio: precio,
+    total: cant * precio,
+    cliente: cliente
+  });
+
+  render();
+  show(`🤝 Fiado registrado a ${cliente} — $${(cant * precio).toFixed(2)} pendiente`, 'warn');
+  document.getElementById('f-cliente').value  = '';
+  document.getElementById('f-cantidad').value = 1;
+}
+
+// ── Cobrar fiado ──────────────────────────────────────────────────────────────
+function cobrar(id) {
+  const f = fiados.find(x => x.id === id);
+  if (!f) return;
+  f.pagado = true;
+
+  if (f.tipo === 'llave') { s.fiadoLlave -= f.cant; s.vendLlave += f.cant; }
+  else                     { s.fiadoSinLlave -= f.cant; s.vendSinLlave += f.cant; }
+
+  // ✅ Marcar cobro en Sheets
+  enviarASheets({
+    tipo: "cobro",
+    cliente: f.cliente,
+    cantidad: f.cant,
+    total: f.cant * f.precio
+  });
+
+  render();
+  show(`✓ Cobrado a ${f.cliente} — $${(f.cant * f.precio).toFixed(2)}`);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function disponiblesPorTipo(tipo) {
+  const vendido = tipo === 'llave' ? s.vendLlave    : s.vendSinLlave;
+  const fiado   = tipo === 'llave' ? s.fiadoLlave   : s.fiadoSinLlave;
+  const total   = tipo === 'llave' ? s.llave        : s.sinllave;
+  return total - vendido - fiado;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  const vendTotal  = s.vendLlave + s.vendSinLlave;
+  const fiadoTotal = s.fiadoLlave + s.fiadoSinLlave;
+  const salidaTotal= vendTotal + fiadoTotal;
+  const dispTotal  = s.indonesia - salidaTotal;
+  const dispLlave  = disponiblesPorTipo('llave');
+  const dispSinll  = disponiblesPorTipo('sinllave');
+
+  const precioRef  = parseFloat(document.getElementById('v-precio').value) || 3.5;
+  const ing        = (vendTotal * precioRef).toFixed(0);
+  const pendiente  = fiados.filter(f => !f.pagado).reduce((a, f) => a + f.cant * f.precio, 0);
+
+  document.getElementById('t-total').textContent      = s.indonesia;
+  document.getElementById('t-vendidos').textContent   = vendTotal;
+  document.getElementById('t-disponible').textContent = Math.max(0, dispTotal);
+  document.getElementById('t-fiados').textContent     = fiadoTotal;
+  document.getElementById('t-ingresos').textContent   = '$' + ing;
+
+  document.getElementById('disp-llave').textContent        = Math.max(0, dispLlave);
+  document.getElementById('disp-llave-sub').textContent    = `${s.vendLlave} vendidos · ${s.fiadoLlave} fiados de ${s.llave}`;
+  document.getElementById('disp-sinllave').textContent     = Math.max(0, dispSinll);
+  document.getElementById('disp-sinllave-sub').textContent = `${s.vendSinLlave} vendidos · ${s.fiadoSinLlave} fiados de ${s.sinllave}`;
+
+  document.getElementById('fiados-monto-badge').textContent = '$' + pendiente.toFixed(2) + ' pendiente';
+
+  document.getElementById('chart').innerHTML = FILAS.map(f => {
+    const val = s[f.key] || 0;
+    const pct = Math.min(100, Math.round(val / (f.base() || 1) * 100));
+    return `
+      <div class="bar-row">
+        <div class="bar-label">${f.label}</div>
+        <div class="bar-track">
+          <div class="bar-fill" id="b-${f.key}" style="width:0%;background:${f.color}">${pct}%</div>
+        </div>
+        <div class="bar-num" style="color:${f.color}">${val}</div>
+      </div>`;
+  }).join('');
+
+  setTimeout(() => {
+    FILAS.forEach(f => {
+      const val = s[f.key] || 0;
+      const pct = Math.min(100, Math.round(val / (f.base() || 1) * 100));
+      const el  = document.getElementById('b-' + f.key);
+      if (el) el.style.width = Math.max(pct, 2) + '%';
+    });
+  }, 60);
+
+  const pendientes = fiados.filter(f => !f.pagado);
+  const tbody = document.getElementById('tbody-fiados');
+  if (!pendientes.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Sin fiados pendientes</td></tr>`;
+  } else {
+    tbody.innerHTML = pendientes.map(f => `
+      <tr>
+        <td><strong>${f.cliente}</strong></td>
+        <td><span class="tag ${f.tipo === 'llave' ? 'tag-llave' : 'tag-sinllave'}">${f.tipo === 'llave' ? 'Con llave' : 'Sin llave'}</span></td>
+        <td style="font-weight:700">${f.cant}</td>
+        <td style="color:#b45309;font-weight:700">$${(f.cant * f.precio).toFixed(2)}</td>
+        <td><span class="tag tag-fiado">Pendiente</span></td>
+        <td><button class="btn-cobrar" onclick="cobrar(${f.id})">Cobrar ✓</button></td>
+      </tr>`).join('');
+  }
+}
+
+function show(txt, tipo = 'ok') {
+  const m = document.getElementById('msg');
+  m.textContent = txt;
+  m.className = `msg show${tipo === 'err' ? ' err' : tipo === 'warn' ? ' warn' : ''}`;
+  setTimeout(() => m.classList.remove('show'), 3500);
+}
+
+// Fecha de hoy por defecto
+const hoy = new Date();
+const yyyy = hoy.getFullYear();
+const mm   = String(hoy.getMonth() + 1).padStart(2, '0');
+const dd   = String(hoy.getDate()).padStart(2, '0');
+document.getElementById('fecha-dia').value = `${yyyy}-${mm}-${dd}`;
+
+validarConfig();
+render();
+</script>
+</body>
+</html>
